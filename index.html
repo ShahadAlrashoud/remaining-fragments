@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Remaining Fragments — Digital Identity Audit</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:       #040c06;
+  --surface:  #060f08;
+  --surface2: #081209;
+  --border:   #0d2010;
+  --border2:  #122814;
+  --green:    #39d353;
+  --green-dim:#1a6628;
+  --green-lo: #0d3314;
+  --text:     #d4e8d8;
+  --text-dim: #7a9e80;
+  --text-lo:  #2a4a2e;
+  --warn:     #f0b060;
+  --danger:   #f07060;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-behavior:smooth; }
+body {
+  background:var(--bg); color:var(--text);
+  font-family:'Courier Prime',monospace;
+  min-height:100vh; overflow-x:hidden; cursor:none;
+}
+/* CRT scanlines */
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:9998;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(57,211,83,0.025) 3px,rgba(57,211,83,0.025) 4px);
+}
+/* Vignette */
+body::after {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:radial-gradient(ellipse at 50% 40%,transparent 40%,rgba(0,0,0,0.5) 100%);
+}
+#cursor {
+  position:fixed; width:12px; height:12px;
+  border:1px solid var(--green); pointer-events:none; z-index:9999;
+  transform:translate(-50%,-50%); transition:width .15s,height .15s;
+}
+#cursor::after {
+  content:''; position:absolute; inset:2px; background:var(--green);
+  animation:cpulse 2s ease infinite;
+}
+@keyframes cpulse{0%,100%{opacity:1}50%{opacity:.4}}
+#cursor.big{width:28px;height:28px;}
+
+/* NAV */
+nav {
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 32px;
+  background:rgba(4,12,6,.94);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(6px);
+}
+.nav-logo {
+  font-family:'Share Tech Mono',monospace;font-size:13px;
+  color:var(--green);letter-spacing:.15em;text-transform:uppercase;
+  text-shadow:0 0 12px rgba(57,211,83,.4);
+}
+.nav-right {
+  display:flex;align-items:center;gap:16px;
+  font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-lo);letter-spacing:.1em;
+}
+.nav-dot {
+  width:6px;height:6px;border-radius:50%;
+  background:var(--green);box-shadow:0 0 6px var(--green);
+  animation:nblink 2s ease infinite;
+}
+@keyframes nblink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* HERO */
+#hero {
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:120px 40px 80px;text-align:center;position:relative;z-index:1;
+}
+.hero-grid {
+  position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:
+    linear-gradient(var(--border) 1px,transparent 1px),
+    linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(ellipse 70% 60% at 50% 50%,black,transparent);
+}
+.boot-seq {
+  font-family:'Share Tech Mono',monospace;font-size:11px;
+  color:var(--green-dim);letter-spacing:.15em;text-transform:uppercase;
+  margin-bottom:22px;opacity:0;animation:fadeUp .5s .1s ease forwards;
+}
+.boot-seq span{color:var(--green);}
+.hero-title {
+  font-family:'VT323',monospace;
+  font-size:clamp(58px,10vw,112px);line-height:.95;
+  color:var(--green);letter-spacing:.02em;margin-bottom:10px;
+  text-shadow:0 0 30px rgba(57,211,83,.35),0 0 80px rgba(57,211,83,.1);
+  opacity:0;animation:fadeUp .6s .25s ease forwards;
+}
+.hero-sub {
+  font-family:'Share Tech Mono',monospace;font-size:11px;
+  color:var(--text-dim);letter-spacing:.1em;margin-bottom:32px;
+  opacity:0;animation:fadeUp .6s .4s ease forwards;
+}
+.hero-desc {
+  max-width:500px;font-size:14px;color:var(--text-dim);
+  line-height:1.85;margin-bottom:44px;
+  opacity:0;animation:fadeUp .6s .5s ease forwards;
+}
+.terminal-wrap {
+  width:100%;max-width:520px;
+  opacity:0;animation:fadeUp .6s .65s ease forwards;
+}
+.term-window {
+  background:var(--surface);border:1px solid var(--border2);
+  box-shadow:0 0 40px rgba(57,211,83,.05),0 0 0 1px var(--border);
+}
+.term-bar {
+  background:var(--surface2);border-bottom:1px solid var(--border);
+  padding:8px 14px;display:flex;align-items:center;gap:8px;
+}
+.tb-dot{width:8px;height:8px;border-radius:50%;}
+.tb-label {
+  font-family:'Share Tech Mono',monospace;font-size:10px;
+  color:var(--text-lo);letter-spacing:.1em;margin-left:4px;
+}
+.term-body{padding:16px 18px;}
+.prompt-row{display:flex;align-items:center;gap:10px;}
+.prompt-lbl {
+  font-family:'Share Tech Mono',monospace;font-size:12px;
+  color:var(--green-dim);white-space:nowrap;
+}
+.prompt-lbl span{color:var(--green);}
+#username-input {
+  flex:1;background:transparent;border:none;outline:none;
+  font-family:'Share Tech Mono',monospace;font-size:14px;
+  color:var(--text);caret-color:var(--green);letter-spacing:.05em;
+}
+#username-input::placeholder{color:var(--text-lo);}
+.term-footer {
+  display:flex;justify-content:space-between;align-items:center;
+  border-top:1px solid var(--border);padding:10px 18px;
+}
+.term-note{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-lo);}
+#scan-btn {
+  font-family:'Share Tech Mono',monospace;font-size:11px;
+  letter-spacing:.15em;text-transform:uppercase;
+  background:var(--green);color:var(--bg);
+  border:none;padding:8px 20px;cursor:pointer;
+  transition:background .15s,box-shadow .15s;
+}
+#scan-btn:hover{background:#4de868;box-shadow:0 0 16px rgba(57,211,83,.3);}
+#scan-btn:disabled{background:var(--green-lo);color:var(--text-lo);cursor:default;box-shadow:none;}
+
+.scroll-hint {
+  position:absolute;bottom:36px;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  font-family:'Share Tech Mono',monospace;font-size:9px;
+  color:var(--text-lo);letter-spacing:.15em;text-transform:uppercase;
+  opacity:0;animation:fadeUp .6s 1.4s ease forwards;
+}
+.scroll-line {
+  width:1px;height:36px;
+  background:linear-gradient(to bottom,var(--green),transparent);
+  animation:scrollAnim 2s ease infinite;
+}
+@keyframes scrollAnim{
+  0%{transform:scaleY(0);transform-origin:top}
+  50%{transform:scaleY(1);transform-origin:top}
+  51%{transform:scaleY(1);transform-origin:bottom}
+  100%{transform:scaleY(0);transform-origin:bottom}
+}
+
+/* MODALS */
+.modal-overlay {
+  display:none;position:fixed;inset:0;z-index:300;
+  background:rgba(4,12,6,.96);backdrop-filter:blur(12px);
+  align-items:center;justify-content:center;
+}
+.modal-overlay.active{display:flex;}
+.modal-box {
+  max-width:480px;width:90%;
+  background:var(--surface);border:1px solid var(--border2);
+  padding:36px;box-shadow:0 0 60px rgba(57,211,83,.05);
+}
+.modal-tag {
+  font-family:'Share Tech Mono',monospace;font-size:9px;
+  letter-spacing:.25em;text-transform:uppercase;
+  color:var(--green);margin-bottom:16px;
+}
+.modal-title {
+  font-family:'VT323',monospace;font-size:32px;
+  color:var(--text);line-height:1.2;margin-bottom:14px;
+}
+.modal-body{font-size:13px;color:var(--text-dim);line-height:1.8;margin-bottom:22px;}
+.modal-hl {
+  background:var(--surface2);border:1px solid var(--border2);
+  border-left:2px solid var(--green);
+  padding:14px 16px;margin-bottom:24px;
+  font-size:13px;color:var(--text-dim);line-height:1.7;
+}
+.modal-hl strong{color:var(--text);}
+.modal-btns{display:flex;gap:10px;flex-wrap:wrap;}
+.btn-primary {
+  flex:1;font-family:'Share Tech Mono',monospace;
+  font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  background:var(--green);color:var(--bg);
+  border:none;padding:12px 20px;cursor:pointer;transition:background .15s;
+}
+.btn-primary:hover{background:#4de868;}
+.btn-secondary {
+  flex:1;font-family:'Share Tech Mono',monospace;
+  font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  background:transparent;color:var(--text-dim);
+  border:1px solid var(--border2);padding:12px 20px;cursor:pointer;
+  transition:border-color .15s,color .15s;
+}
+.btn-secondary:hover{border-color:var(--green-dim);color:var(--text);}
+.modal-foot {
+  font-family:'Share Tech Mono',monospace;font-size:9px;
+  color:var(--text-lo);text-align:center;margin-top:16px;line-height:1.6;
+}
+.field-label {
+  font-family:'Share Tech Mono',monospace;font-size:9px;
+  letter-spacing:.2em;text-transform:uppercase;
+  color:var(--text-lo);display:block;margin-bottom:8px;
+}
+.field-input {
+  width:100%;background:var(--bg);border:1px solid var(--border2);
+  outline:none;padding:11px 14px;margin-bottom:16px;
+  font-family:'Share Tech Mono',monospace;font-size:13px;
+  color:var(--text);caret-color:var(--green);transition:border-color .15s;
+}
+.field-input:focus{border-color:var(--green-dim);}
+.field-input::placeholder{color:var(--text-lo);}
+.code-input{text-align:center;font-size:24px;letter-spacing:.4em;color:var(--green);}
+.field-err {
+  font-family:'Share Tech Mono',monospace;font-size:10px;
+  color:var(--danger);margin-top:-10px;margin-bottom:14px;display:none;
+}
+
+/* SCAN OVERLAY */
+#scan-overlay {
+  display:none;position:fixed;inset:0;z-index:200;
+  background:rgba(4,12,6,.97);
+  flex-direction:column;align-items:center;justify-content:center;gap:22px;
+}
+#scan-overlay.active{display:flex;}
+.scan-title {
+  font-family:'Share Tech Mono',monospace;font-size:11px;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--green);
+  animation:sblink 1.2s ease infinite;
+}
+@keyframes sblink{0%,100%{opacity:1}50%{opacity:.3}}
+.scan-count {
+  font-family:'VT323',monospace;font-size:72px;
+  color:var(--text);line-height:1;
+  text-shadow:0 0 30px rgba(57,211,83,.2);
+}
+.scan-track{width:300px;height:2px;background:var(--border2);}
+#scan-bar {
+  height:100%;width:0%;background:var(--green);
+  box-shadow:0 0 8px rgba(57,211,83,.6);transition:width .08s linear;
+}
+.scan-sub {
+  font-family:'Share Tech Mono',monospace;font-size:10px;
+  color:var(--text-lo);letter-spacing:.08em;
+}
+#scan-log{
+  font-family:'Share Tech Mono',monospace;font-size:10px;
+  color:var(--green-dim);text-align:left;line-height:1.9;
+  max-width:360px;width:100%;min-height:96px;
+}
+
+/* RESULTS */
+#results-section {
+  display:none;padding:60px 40px 100px;
+  max-width:1100px;margin:0 auto;position:relative;z-index:1;
+}
+#results-section.visible{display:block;}
+.risk-banner {
+  border:1px solid;padding:28px 32px;margin-bottom:14px;
+  display:flex;flex-wrap:wrap;justify-content:space-between;
+  align-items:center;gap:20px;position:relative;overflow:hidden;
+}
+.risk-banner::after {
+  content:'// AUDIT REPORT';position:absolute;top:10px;right:16px;
+  font-family:'Share Tech Mono',monospace;font-size:9px;
+  color:var(--text-lo);letter-spacing:.15em;
+}
+.risk-lbl {
+  font-family:'Share Tech Mono',monospace;font-size:9px;
+  color:var(--text-lo);letter-spacing:.2em;text-transform:uppercase;margin-bottom:6px;
+}
+.risk-level {
+  font-family:'VT323',monospace;font-size:52px;
+  line-height:1;letter-spacing:.02em;
+}
+.risk-uname {
+  font-family:'Share Tech Mono',monospace;font-size:11px;
+  color:var(--text-dim);margin-top:4px;
+}
+.risk-stats{display:flex;gap:32px;}
+.stat{text-align:center;}
+.stat-num{font-family:'VT323',monospace;font-size:40px;line-height:1;color:var(--text);}
+.stat-lbl{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-lo);letter-spacing:.1em;margin-top:2px;}
+
+.acc-bar {
+  background:var(--surface);border:1px solid var(--border2);
+  border-left:2px solid var(--green-dim);
+  padding:10px 16px;margin-bottom:24px;
+  display:flex;flex-wrap:wrap;gap:20px;align-items:center;
+  font-family:'Share Tech Mono',monospace;font-size:10px;
+}
+
+/* AI */
+.ai-box {
+  background:var(--surface);border:1px solid var(--border2);
+  border-left:2px solid var(--green);
+  padding:22px 24px;margin-bottom:28px;
+}
+.ai-tag {
+  font-family:'Share Tech Mono',monospace;font-size:9px;
+  letter-spacing:.2em;text-transform:uppercase;
+  color:var(--green);margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;
+}
+.ai-tag::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--border2),transparent);}
+#ai-text{font-size:14px;color:var(--text-dim);line-height:1.85;}
+.ai-loading {
+  display:flex;align-items:center;gap:8px;
+  font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-lo);
+}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:dp 1.2s ease infinite;}
+.dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+@keyframes dp{0%,100%{opacity:.2}50%{opacity:1}}
+
+/* Tabs */
+.tab-bar {
+  display:flex;border-bottom:1px solid var(--border2);
+  margin-bottom:24px;align-items:center;
+}
+.tab-btn {
+  font-family:'Share Tech Mono',monospace;font-size:10px;
+  letter-spacing:.12em;text-transform:uppercase;
+  padding:10px 18px;background:transparent;
+  border:none;border-bottom:2px solid transparent;
+  color:var(--text-lo);cursor:pointer;
+  margin-bottom:-1px;transition:color .15s,border-color .15s;
+}
+.tab-btn.active{color:var(--green);border-bottom-color:var(--green);}
+.tab-btn:hover:not(.active){color:var(--text-dim);}
+.tab-actions{margin-left:auto;display:flex;gap:8px;align-items:center;}
+
+/* Cards */
+.platform-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(290px,1fr));
+  gap:10px;
+}
+.platform-card {
+  background:var(--surface);border:1px solid var(--border2);
+  padding:16px 18px;
+  opacity:0;transform:translateY(8px);
+  animation:cardIn .3s ease forwards;
+  transition:border-color .2s;
+}
+.platform-card:hover{border-color:var(--green-dim);}
+@keyframes cardIn{to{opacity:1;transform:translateY(0)}}
+.card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.card-name{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--text);}
+.card-cat {
+  font-family:'Share Tech Mono',monospace;font-size:8px;
+  letter-spacing:.1em;text-transform:uppercase;
+  padding:2px 8px;border:1px solid;
+}
+.card-status{font-family:'Share Tech Mono',monospace;font-size:10px;margin-bottom:7px;display:inline-block;text-decoration:none;}
+.card-risk{font-size:12px;color:var(--text-dim);line-height:1.6;margin-bottom:6px;}
+.card-retain{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--warn);letter-spacing:.05em;}
+.card-url {
+  font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-lo);
+  display:block;margin-top:8px;text-decoration:none;word-break:break-all;
+  transition:color .15s;
+}
+.card-url:hover{color:var(--green);}
+
+.risk-cards{display:flex;flex-direction:column;gap:10px;}
+.risk-card {
+  background:var(--surface);border:1px solid var(--border2);
+  padding:20px 22px;display:flex;gap:16px;align-items:flex-start;
+  opacity:0;animation:cardIn .3s ease forwards;
+}
+.risk-icon{font-size:20px;flex-shrink:0;line-height:1;}
+.risk-card-title{font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;}
+.risk-card-desc{font-size:13px;color:var(--text-dim);line-height:1.75;}
+
+.action-row{display:flex;gap:10px;margin-top:36px;flex-wrap:wrap;}
+.btn-ghost {
+  font-family:'Share Tech Mono',monospace;font-size:10px;
+  letter-spacing:.12em;text-transform:uppercase;
+  padding:11px 20px;background:transparent;
+  border:1px solid var(--border2);color:var(--text-dim);cursor:pointer;
+  transition:border-color .15s,color .15s;
+}
+.btn-ghost:hover{border-color:var(--green-dim);color:var(--text);}
+.btn-green {
+  font-family:'Share Tech Mono',monospace;font-size:10px;
+  letter-spacing:.12em;text-transform:uppercase;
+  padding:11px 20px;background:var(--green);color:var(--bg);
+  border:none;cursor:pointer;transition:background .15s;
+}
+.btn-green:hover{background:#4de868;}
+
+/* ABOUT */
+#about {
+  border-top:1px solid var(--border2);padding:80px 40px;
+  max-width:1100px;margin:0 auto;position:relative;z-index:1;
+}
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:start;}
+.section-tag {
+  font-family:'Share Tech Mono',monospace;font-size:9px;
+  color:var(--green);letter-spacing:.25em;text-transform:uppercase;
+  margin-bottom:18px;display:flex;align-items:center;gap:10px;
+}
+.section-tag::before{content:'//';color:var(--green-dim);}
+.about-title{font-family:'VT323',monospace;font-size:38px;color:var(--text);line-height:1.2;margin-bottom:18px;}
+.about-body{font-size:14px;color:var(--text-dim);line-height:1.85;}
+.about-body p{margin-bottom:14px;}
+.about-body strong{color:var(--text);}
+.about-body em{color:var(--green);font-style:italic;}
+
+.finding-list{list-style:none;display:flex;flex-direction:column;gap:14px;}
+.finding-item{border-left:2px solid var(--green-lo);padding-left:16px;transition:border-color .2s;}
+.finding-item:hover{border-left-color:var(--green-dim);}
+.finding-num{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--green);letter-spacing:.15em;margin-bottom:4px;}
+.finding-text{font-size:13px;color:var(--text-dim);line-height:1.7;}
+
+footer {
+  border-top:1px solid var(--border);padding:22px 40px;
+  display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:10px;position:relative;z-index:1;
+}
+.footer-logo{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--green);letter-spacing:.15em;text-transform:uppercase;}
+.footer-note{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-lo);letter-spacing:.08em;}
+
+body.scanned #hero{display:none;}
+body.scanned #results-section{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+@media(max-width:768px){
+  .about-grid{grid-template-columns:1fr;gap:40px;}
+  nav{padding:12px 16px;}
+  #hero{padding:90px 20px 60px;}
+  #results-section{padding:40px 16px 80px;}
+  #about{padding:60px 20px;}
+  footer{padding:18px 20px;}
+  .risk-stats{gap:20px;}
+  .risk-banner{padding:20px;}
+}
+</style>
+</head>
+<body>
+<div id="cursor"></div>
+
+<nav>
+  <span class="nav-logo">Remaining Fragments</span>
+  <div class="nav-right">
+    <div class="nav-dot"></div>
+    <span>SYSTEM ONLINE</span>
+    <span style="color:var(--border2)">|</span>
+    <span>RF-AUDIT v1.0 · RESEARCH PROTOTYPE</span>
+  </div>
+</nav>
+
+<section id="hero">
+  <div class="hero-grid"></div>
+  <div class="boot-seq">// System initialized · <span>Awaiting input</span>_</div>
+  <div class="hero-title">REMAINING<br>FRAGMENTS</div>
+  <div class="hero-sub">// passive identity reconstruction engine // digital footprint audit</div>
+  <p class="hero-desc">
+    Every username you've ever used leaves a recoverable trace —
+    long after you think it's gone. Enter a handle to see which platforms
+    still carry your identity, and what that means for your privacy.
+  </p>
+  <div class="terminal-wrap">
+    <div class="term-window">
+      <div class="term-bar">
+        <div class="tb-dot" style="background:#ff5f57"></div>
+        <div class="tb-dot" style="background:#febc2e"></div>
+        <div class="tb-dot" style="background:#39d353"></div>
+        <span class="tb-label">rf-audit // identity-scan-terminal — bash</span>
+      </div>
+      <div class="term-body">
+        <div class="prompt-row">
+          <span class="prompt-lbl"><span>root@audit</span>:~$&nbsp;scan --user&nbsp;</span>
+          <input type="text" id="username-input" placeholder="your_handle" autocomplete="off" spellcheck="false"/>
+        </div>
+        <div id="username-err" style="display:none;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--danger);padding:4px 0 2px;letter-spacing:.05em;">&#x2717; Please enter a username, not an email address.</div>
+      </div>
+      <div class="term-footer">
+        <span class="term-note">self-audit only &middot; no data stored</span>
+        <button id="scan-btn" disabled>[ EXECUTE ]</button>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-hint">
+    <div class="scroll-line"></div>
+    <span>scroll to learn more</span>
+  </div>
+</section>
+
+<!-- CONSENT MODAL -->
+<div class="modal-overlay" id="consent-modal">
+  <div class="modal-box">
+    <div class="modal-tag">⚠ Before you continue</div>
+    <div class="modal-title">This tool is for your own footprint only.</div>
+    <p class="modal-body">Searching for someone else's username without their consent may constitute a privacy violation. This tool is designed exclusively for self-awareness — to help you understand your own digital exposure.</p>
+    <div class="modal-hl">By continuing, I confirm that <strong>the username I entered belongs to me</strong>, and I am using this tool solely to audit my own digital footprint.</div>
+    <div class="modal-btns">
+      <button class="btn-primary" id="consent-agree">[ AGREE — THIS IS MY USERNAME ]</button>
+      <button class="btn-secondary" onclick="closeConsent()">Cancel</button>
+    </div>
+    <div class="modal-foot">Remaining Fragments Research Project · No data is stored or transmitted</div>
+  </div>
+</div>
+
+<!-- EMAIL MODAL -->
+<div class="modal-overlay" id="email-modal">
+  <div class="modal-box">
+    <div class="modal-tag">// Identity Verification</div>
+    <div class="modal-title">Verify account ownership.</div>
+    <div id="email-step-1">
+      <p class="modal-body">Enter the email linked to <strong id="verify-uname" style="color:var(--green);font-family:'Share Tech Mono',monospace;"></strong>. We'll send a one-time code to confirm ownership.</p>
+      <label class="field-label">Email address</label>
+      <input type="email" id="email-input" class="field-input" placeholder="you@example.com"/>
+      <div id="email-err" class="field-err"></div>
+      <div class="modal-btns">
+        <button class="btn-primary" onclick="sendCode()">[ SEND CODE ]</button>
+        <button class="btn-secondary" onclick="skipVerify()">Skip for now</button>
+      </div>
+    </div>
+    <div id="email-step-2" style="display:none">
+      <p class="modal-body">A 6-digit code was sent to <strong id="email-sent" style="color:var(--green);font-family:'Share Tech Mono',monospace;"></strong>. Check your inbox and spam folder.</p>
+      <label class="field-label">Verification code</label>
+      <input type="text" id="code-input" class="field-input code-input" placeholder="000000" maxlength="6"/>
+      <div id="code-err" class="field-err"></div>
+      <div class="modal-btns">
+        <button class="btn-primary" onclick="confirmCode()">[ CONFIRM &amp; SCAN ]</button>
+        <button class="btn-secondary" onclick="skipVerify()">Skip verification</button>
+      </div>
+    </div>
+    <div class="modal-foot">⚠ Email verification requires a backend service.<br>Demo mode — code shown in browser console &amp; alert.</div>
+  </div>
+</div>
+
+<!-- SCAN OVERLAY -->
+<div id="scan-overlay">
+  <div class="scan-title" id="scan-label">Initializing scan…</div>
+  <div class="scan-count" id="scan-counter">0%</div>
+  <div class="scan-track"><div id="scan-bar"></div></div>
+  <div class="scan-sub">Tracing identity for <span id="scan-uname" style="color:var(--green)"></span></div>
+  <div id="scan-log"></div>
+</div>
+
+<!-- RESULTS -->
+<section id="results-section">
+  <div class="risk-banner" id="risk-banner">
+    <div>
+      <div class="risk-lbl">Footprint Risk Assessment</div>
+      <div class="risk-level" id="risk-text">—</div>
+      <div class="risk-uname" id="risk-uname-display"></div>
+    </div>
+    <div class="risk-stats">
+      <div class="stat"><div class="stat-num" id="stat-found">—</div><div class="stat-lbl">Platforms</div></div>
+      <div class="stat"><div class="stat-num" id="stat-retain">—</div><div class="stat-lbl">Retain Data</div></div>
+      <div class="stat"><div class="stat-num" id="stat-cats">—</div><div class="stat-lbl">Categories</div></div>
+    </div>
+  </div>
+  <div class="acc-bar" id="acc-bar"></div>
+
+  <div class="ai-box">
+    <div class="ai-tag">AI Awareness Analysis</div>
+    <div id="ai-text">
+      <div class="ai-loading">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        <span>Generating analysis…</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="platforms">Platforms Found (<span id="tab-count">0</span>)</button>
+    <button class="tab-btn" data-tab="risks">Privacy Risks</button>
+    <div class="tab-actions">
+      <button class="btn-ghost" onclick="resetScan()">← New Scan</button>
+      <button class="btn-green" onclick="window.print()">Export</button>
+    </div>
+  </div>
+  <div id="tab-platforms" class="platform-grid"></div>
+  <div id="tab-risks" class="risk-cards" style="display:none"></div>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="about-grid">
+    <div>
+      <div class="section-tag">About This Research</div>
+      <h2 class="about-title">Your past doesn't<br>disappear. It persists.</h2>
+      <div class="about-body">
+        <p>This tool is a research prototype built alongside the paper <em>"Remaining Fragments: Reconstructing Digital Identities Through Passive Browsing."</em></p>
+        <p>The study found that comprehensive digital profiles can be reconstructed through passive, non-technical browsing alone — no hacking, no specialized tools. A creator with a small local following yielded nearly the same depth of recoverable data as an internationally recognized figure.</p>
+        <p>Digital exposure is a function of <strong>participation</strong>, not prominence.</p>
+      </div>
+    </div>
+    <div>
+      <div class="section-tag">Key Findings</div>
+      <ul class="finding-list">
+        <li class="finding-item">
+          <div class="finding-num">// Finding 01</div>
+          <div class="finding-text">Profiles spanning 5+ years of activity were fully reconstructable through publicly accessible platforms with no specialized tools.</div>
+        </li>
+        <li class="finding-item">
+          <div class="finding-num">// Finding 02</div>
+          <div class="finding-text">Abandoned handles from years ago still resolve to active indexed profiles — including full rebranding timelines and old usernames.</div>
+        </li>
+        <li class="finding-item">
+          <div class="finding-num">// Finding 03</div>
+          <div class="finding-text">Cross-platform username consistency makes aggregation trivial — a single search reconstructs posting frequency and behavioral patterns.</div>
+        </li>
+        <li class="finding-item">
+          <div class="finding-num">// Finding 04</div>
+          <div class="finding-text">Saudi Arabia's PDPL marks regulatory progress, but digital footprint management remains significantly under-addressed in digital citizenship education.</div>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span class="footer-logo">Remaining Fragments</span>
+  <span class="footer-note">Research Prototype · Self-directed searches only · No data stored · Academic use</span>
+</footer>
+
+<script>
+const PLATFORMS=[
+  {name:"GitHub",      url:"https://github.com/{u}",                   cat:"Dev",          risk:"Exposes repositories, commit history, and sometimes a public email address.",retains:false},
+  {name:"Reddit",      url:"https://reddit.com/user/{u}",              cat:"Social",       risk:"Full post and comment history is publicly indexed, revealing subreddit interests going back years.",retains:true},
+  {name:"Twitter / X", url:"https://x.com/{u}",                        cat:"Social",       risk:"Tweets, liked posts, and follower networks are indexed by search engines.",retains:true},
+  {name:"Instagram",   url:"https://instagram.com/{u}",                 cat:"Social",       risk:"Profile bio and public posts may persist in caches after deletion.",retains:true},
+  {name:"TikTok",      url:"https://tiktok.com/@{u}",                   cat:"Social",       risk:"Videos are frequently downloaded and re-uploaded by third parties.",retains:true},
+  {name:"YouTube",     url:"https://youtube.com/@{u}",                  cat:"Video",        risk:"Comments and channel history can span over a decade and are heavily indexed.",retains:true},
+  {name:"Twitch",      url:"https://twitch.tv/{u}",                     cat:"Video",        risk:"Clips are often saved and shared independently of the original account.",retains:true},
+  {name:"LinkedIn",    url:"https://linkedin.com/in/{u}",               cat:"Professional", risk:"Work history, education, and connections are indexed and cached by search engines.",retains:false},
+  {name:"Pinterest",   url:"https://pinterest.com/{u}",                 cat:"Media",        risk:"Boards and saved content reflect personal interests and aesthetic preferences.",retains:false},
+  {name:"Tumblr",      url:"https://tumblr.com/{u}",                    cat:"Blog",         risk:"Early internet posts from years ago may still be live and indexed.",retains:true},
+  {name:"Steam",       url:"https://steamcommunity.com/id/{u}",         cat:"Gaming",       risk:"Game library and hours played are publicly visible by default.",retains:false},
+  {name:"Spotify",     url:"https://open.spotify.com/user/{u}",         cat:"Music",        risk:"Public playlists can reveal listening history and personal associations.",retains:false},
+  {name:"SoundCloud",  url:"https://soundcloud.com/{u}",                cat:"Music",        risk:"Old tracks and comments persist indefinitely.",retains:true},
+  {name:"Behance",     url:"https://behance.net/{u}",                   cat:"Creative",     risk:"Portfolio work is highly indexed and tied to your professional identity.",retains:false},
+  {name:"DeviantArt",  url:"https://deviantart.com/{u}",                cat:"Creative",     risk:"Archived art from early years is still publicly accessible.",retains:true},
+  {name:"Flickr",      url:"https://flickr.com/people/{u}",             cat:"Media",        risk:"Geotagged photos can reveal home, work, or frequently visited locations.",retains:true},
+  {name:"Snapchat",    url:"https://snapchat.com/add/{u}",              cat:"Social",       risk:"Profile page reveals display name and linked Bitmoji avatar.",retains:false},
+  {name:"Keybase",     url:"https://keybase.io/{u}",                    cat:"Dev",          risk:"Cryptographic identity proofs link and verify accounts across all platforms.",retains:false},
+  {name:"Patreon",     url:"https://patreon.com/{u}",                   cat:"Creative",     risk:"Creator status and supporter count are publicly visible.",retains:false},
+  {name:"Ko-fi",       url:"https://ko-fi.com/{u}",                     cat:"Creative",     risk:"Donation goals and support history are often public.",retains:false},
+];
+
+const CAT_COLORS={
+  Social:"#f97316",Dev:"#39d353",Video:"#f87171",
+  Professional:"#38bdf8",Music:"#c084fc",Creative:"#f472b6",
+  Gaming:"#4ade80",Blog:"#facc15",Media:"#2dd4bf"
+};
+
+const RISKS=[
+  {icon:"🔁",title:"Data Retention After Deletion",  color:"#f0b060",desc:(r,n)=>`${r} of the ${n} found platforms retain your data even after account deletion. Removing your account does not guarantee removal from their servers — or from archived, cached, and third-party copies of your content.`},
+  {icon:"🧩",title:"Cross-Platform Identity Linking",color:"#c084fc",desc:(r,n)=>`Using the same username across ${n} platforms makes it trivial for any internet user to aggregate a complete profile: interests, posting behavior, migration history, and timeline — all from a single search.`},
+  {icon:"🕰️",title:"Historical Content Persistence", color:"#818cf8",desc:()=>`Old accounts you may have forgotten still appear in search engine results. Web archive services like the Wayback Machine may hold snapshots of profiles you believe you have deleted.`},
+  {icon:"📍",title:"Behavioral Pattern Exposure",    color:"#38bdf8",desc:()=>`Your posting frequency, platform migration timeline, and username rebranding history can all be reconstructed through passive browsing alone — no technical tools required. This was a core finding of the underlying research paper.`},
+];
+
+function getRisk(n){
+  if(n===0)  return{label:"MINIMAL",  color:"#4ade80",bg:"rgba(74,222,128,.05)",  border:"rgba(74,222,128,.18)"};
+  if(n<=3)   return{label:"LOW",      color:"#a3e635",bg:"rgba(163,230,53,.05)",  border:"rgba(163,230,53,.18)"};
+  if(n<=7)   return{label:"MODERATE", color:"#fbbf24",bg:"rgba(251,191,36,.05)",  border:"rgba(251,191,36,.18)"};
+  if(n<=12)  return{label:"HIGH",     color:"#fb923c",bg:"rgba(251,146,60,.05)",  border:"rgba(251,146,60,.18)"};
+  return            {label:"CRITICAL", color:"#f87171",bg:"rgba(248,113,113,.05)",border:"rgba(248,113,113,.18)"};
+}
+
+// ── CHECKERS ──
+const CHECKER_MAP={
+  GitHub: async u=>{
+    try{const r=await fetch(`https://api.github.com/users/${encodeURIComponent(u)}`,{headers:{Accept:'application/vnd.github+json'}});return r.status===200;}catch{return null;}
+  },
+  Reddit: async u=>{
+    try{const r=await fetch(`https://www.reddit.com/user/${encodeURIComponent(u)}/about.json`);if(r.status===404)return false;if(r.status===200){const d=await r.json();return!d.error;}return null;}catch{return null;}
+  },
+  Keybase: async u=>{
+    try{const r=await fetch(`https://keybase.io/_/api/1.0/user/lookup.json?usernames=${encodeURIComponent(u)}`);const d=await r.json();return d?.them?.length>0;}catch{return null;}
+  },
+};
+["Twitter / X","Instagram","TikTok","YouTube","Twitch","LinkedIn","Pinterest",
+ "Tumblr","Steam","Spotify","SoundCloud","Behance","DeviantArt","Flickr",
+ "Snapchat","Patreon","Ko-fi"].forEach(n=>CHECKER_MAP[n]=null);
+
+// ── CURSOR ──
+const cur=document.getElementById('cursor');
+document.addEventListener('mousemove',e=>{cur.style.left=e.clientX+'px';cur.style.top=e.clientY+'px';});
+document.addEventListener('mouseover',e=>{cur.classList.toggle('big',!!e.target.closest('button,a,input'));});
+
+// ── INPUT ──
+const inp=document.getElementById('username-input');
+const btn=document.getElementById('scan-btn');
+inp.addEventListener('input',()=>{
+  const val=inp.value.trim();
+  const isEmail=val.includes('@');
+  const errEl=document.getElementById('username-err');
+  errEl.style.display=isEmail?'block':'none';
+  btn.disabled=!val||isEmail;
+});
+inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&inp.value.trim()&&!inp.value.includes('@'))openConsent();});
+btn.addEventListener('click',openConsent);
+
+// ── CONSENT ──
+function openConsent(){if(!inp.value.trim())return;document.getElementById('consent-modal').classList.add('active');}
+function closeConsent(){document.getElementById('consent-modal').classList.remove('active');}
+document.getElementById('consent-agree').addEventListener('click',()=>{closeConsent();openEmailModal();});
+
+// ── EMAIL ──
+let _code=null;
+function openEmailModal(){
+  document.getElementById('verify-uname').textContent='@'+inp.value.trim();
+  document.getElementById('email-step-1').style.display='block';
+  document.getElementById('email-step-2').style.display='none';
+  document.getElementById('email-input').value='';
+  document.getElementById('code-input').value='';
+  document.getElementById('email-err').style.display='none';
+  document.getElementById('code-err').style.display='none';
+  document.getElementById('email-modal').classList.add('active');
+}
+function sendCode(){
+  const email=document.getElementById('email-input').value.trim();
+  const err=document.getElementById('email-err');
+  if(!email||!email.includes('@')){err.textContent='Please enter a valid email address.';err.style.display='block';return;}
+  _code=String(Math.floor(100000+Math.random()*900000));
+  console.log(`[Demo] Code for ${email}: ${_code}`);
+  document.getElementById('email-sent').textContent=email;
+  document.getElementById('email-step-1').style.display='none';
+  document.getElementById('email-step-2').style.display='block';
+  alert(`[Research Demo Mode]\n\nIn production, a code would be sent to ${email}.\n\nYour code is: ${_code}`);
+}
+function confirmCode(){
+  const entered=document.getElementById('code-input').value.trim();
+  const err=document.getElementById('code-err');
+  if(entered===_code){document.getElementById('email-modal').classList.remove('active');_code=null;startScan(true);}
+  else{err.textContent='Incorrect code. Please try again.';err.style.display='block';}
+}
+function skipVerify(){document.getElementById('email-modal').classList.remove('active');startScan(false);}
+
+// ── SCAN ──
+async function startScan(verified=false){
+  const uname=inp.value.trim();if(!uname)return;
+  const overlay=document.getElementById('scan-overlay');
+  const bar=document.getElementById('scan-bar');
+  const counter=document.getElementById('scan-counter');
+  const label=document.getElementById('scan-label');
+  const log=document.getElementById('scan-log');
+  document.getElementById('scan-uname').textContent=uname;
+  bar.style.width='0%';counter.textContent='0%';log.innerHTML='';
+  overlay.classList.add('active');
+
+  const addLog=(msg,color='var(--text-lo)')=>{
+    const l=document.createElement('div');
+    l.style.cssText=`color:${color};`;l.textContent=msg;log.appendChild(l);
+    if(log.children.length>5)log.removeChild(log.firstChild);
+  };
+
+  const found=[];
+  const verifiable=PLATFORMS.filter(p=>CHECKER_MAP[p.name]!=null);
+  const unverifiable=PLATFORMS.filter(p=>CHECKER_MAP[p.name]==null);
+  const total=PLATFORMS.length;let done=0;
+
+  const checks=verifiable.map(async p=>{
+    label.textContent=`Checking ${p.name}…`;
+    const result=await CHECKER_MAP[p.name](uname);
+    done++;bar.style.width=Math.round((done/total)*100)+'%';counter.textContent=Math.round((done/total)*100)+'%';
+    if(result===true){found.push({...p,url:p.url.replace('{u}',uname),verified:true});addLog(`> ${p.name.toLowerCase()}: FOUND`,'var(--green)');}
+    else if(result===false){addLog(`> ${p.name.toLowerCase()}: not found`);}
+  });
+  await Promise.all(checks);
+
+  for(const p of unverifiable){
+    label.textContent=`Scanning ${p.name}…`;
+    await new Promise(r=>setTimeout(r,55));
+    done++;bar.style.width=Math.round((done/total)*100)+'%';counter.textContent=Math.round((done/total)*100)+'%';
+    found.push({...p,url:p.url.replace('{u}',uname),verified:false});
+  }
+
+  bar.style.width='100%';counter.textContent='100%';
+  label.textContent='Scan complete.';
+  addLog(`> scan complete — ${found.length} entries recorded.`,'var(--green)');
+  await new Promise(r=>setTimeout(r,600));
+  overlay.classList.remove('active');
+  showResults(uname,found,verified);
+  fetchAI(uname,found);
+}
+
+// ── RESULTS ──
+function showResults(uname,found,ownerVerified){
+  document.body.classList.add('scanned');
+  const risk=getRisk(found.length);
+  const rc=found.filter(p=>p.retains).length;
+  const cats=new Set(found.map(p=>p.cat));
+  const cc=found.filter(p=>p.verified).length;
+  const uc=found.filter(p=>!p.verified).length;
+  const pct=found.length?Math.round((cc/found.length)*100):0;
+
+  const banner=document.getElementById('risk-banner');
+  banner.style.background=risk.bg;banner.style.borderColor=risk.border;banner.style.color=risk.color;
+  document.getElementById('risk-text').textContent=risk.label;
+  document.getElementById('risk-text').style.color=risk.color;
+
+  const badge=ownerVerified
+    ?`<span style="font-family:'Share Tech Mono',monospace;font-size:9px;background:rgba(57,211,83,.1);color:var(--green);border:1px solid var(--green-dim);padding:2px 10px;margin-left:10px;letter-spacing:.1em;">✓ IDENTITY VERIFIED</span>`
+    :`<span style="font-family:'Share Tech Mono',monospace;font-size:9px;background:rgba(240,176,96,.1);color:var(--warn);border:1px solid rgba(240,176,96,.3);padding:2px 10px;margin-left:10px;letter-spacing:.1em;">~ CONSENT ONLY</span>`;
+  document.getElementById('risk-uname-display').innerHTML=`@${uname} ${badge}`;
+
+  document.getElementById('stat-found').textContent=found.length;
+  document.getElementById('stat-retain').textContent=rc;
+  document.getElementById('stat-cats').textContent=cats.size;
+  document.getElementById('tab-count').textContent=found.length;
+
+  document.getElementById('acc-bar').innerHTML=`
+    <span style="color:var(--green)">✓ ${cc} confirmed via live API</span>
+    <span style="color:var(--warn)">~ ${uc} possible — check yourself</span>
+    <span style="color:var(--text-lo)">${pct}% verified · ${100-pct}% estimated</span>
+  `;
+
+  const grid=document.getElementById('tab-platforms');
+  grid.innerHTML='';
+  found.forEach((p,i)=>{
+    const color=CAT_COLORS[p.cat]||'#888';
+    const card=document.createElement('div');
+    card.className='platform-card';
+    card.style.animationDelay=(i*50)+'ms';
+    card.style.borderLeft=`2px solid ${color}55`;
+    card.innerHTML=`
+      <div class="card-head">
+        <span class="card-name">${p.name}</span>
+        <span class="card-cat" style="color:${color};border-color:${color}44;background:${color}11">${p.cat}</span>
+      </div>
+      ${p.verified
+        ?`<span class="card-status" style="color:var(--green)">✓ Confirmed via live API check</span>`
+        :`<a class="card-status" href="${p.url}" target="_blank" rel="noreferrer" style="color:var(--warn)">~ Check this yourself →</a>`
+      }
+      <p class="card-risk">⚠ ${p.risk}</p>
+      ${p.retains?`<div class="card-retain">⟳ Data retained after account deletion</div>`:''}
+      <a class="card-url" href="${p.url}" target="_blank" rel="noreferrer">${p.url}</a>
+    `;
+    grid.appendChild(card);
+  });
+
+  const rc2=document.getElementById('tab-risks');
+  rc2.innerHTML='';
+  RISKS.forEach((r,i)=>{
+    const card=document.createElement('div');
+    card.className='risk-card';card.style.animationDelay=(i*70)+'ms';
+    card.style.borderLeft=`2px solid ${r.color}66`;
+    card.innerHTML=`
+      <span class="risk-icon">${r.icon}</span>
+      <div>
+        <div class="risk-card-title" style="color:${r.color}">${r.title}</div>
+        <div class="risk-card-desc">${r.desc(rc,found.length)}</div>
+      </div>
+    `;
+    rc2.appendChild(card);
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── AI ──
+async function fetchAI(uname,found){
+  const el=document.getElementById('ai-text');
+  const risk=getRisk(found.length);
+  const rc=found.filter(p=>p.retains).length;
+  const cats=[...new Set(found.map(p=>p.cat))];
+  try{
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",max_tokens:500,
+        system:`You are a concise privacy advisor. Given a user's digital footprint audit results, write a 3-4 sentence plain-English awareness summary. Be direct, specific, and empowering — not alarmist. End with one clear actionable recommendation. No markdown, no bullet points — clear flowing prose only.`,
+        messages:[{role:"user",content:`Username: "${uname}". Found on ${found.length} platforms. ${rc} retain data after deletion. Exposed categories: ${cats.join(", ")}. Risk level: ${risk.label}.`}]
+      })
+    });
+    const data=await res.json();
+    el.textContent=(data.content||[]).map(c=>c.text||'').join('')||'Summary unavailable.';
+  }catch{el.textContent='AI summary could not be loaded. Your scan results are shown above.';}
+}
+
+// ── TABS ──
+document.querySelectorAll('.tab-btn[data-tab]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn[data-tab]').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    const t=b.dataset.tab;
+    document.getElementById('tab-platforms').style.display=t==='platforms'?'grid':'none';
+    document.getElementById('tab-risks').style.display=t==='risks'?'flex':'none';
+  });
+});
+
+function resetScan(){
+  document.body.classList.remove('scanned');
+  inp.value='';btn.disabled=true;
+  document.getElementById('username-err').style.display='none';
+  document.getElementById('ai-text').innerHTML=`<div class="ai-loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span>Generating analysis…</span></div>`;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>
