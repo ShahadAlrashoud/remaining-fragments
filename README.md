@@ -45,9 +45,8 @@ Remaining Fragments is designed as a research and educational prototype. It does
 
 ## Screenshots
 
-Add screenshots here:
+### Homepage
+![Remaining Fragments homepage](Remaining-Fragments-images/homepage.png)
 
-
-```markdown
-![Remaining Fragments homepage](images/homepage.png)
-![Audit results screen](images/results.png)
+### Audit Results
+![Audit results screen](Remaining-Fragments-images/results.png)
